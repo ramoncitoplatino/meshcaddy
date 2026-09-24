@@ -107,7 +107,7 @@ internal static class StlParser
         indices.Add(start); indices.Add(start + 1); indices.Add(start + 2);
     }
 
-    internal static ModelMesh Complete(List<Vector3> positions, List<int> indices, List<Vector3> normals, List<uint?>? triangleColors = null)
+    internal static ModelMesh Complete(List<Vector3> positions, List<int> indices, List<Vector3> normals, List<uint?>? triangleColors = null, IReadOnlyList<ModelPlate>? plates = null)
     {
         if (positions.Count == 0) throw new InvalidDataException("No triangles were found in this model.");
         return new ModelMesh
@@ -115,6 +115,7 @@ internal static class StlParser
             Positions = positions,
             Indices = indices,
             Normals = normals,
+            Plates = plates ?? [],
             TriangleColors = triangleColors is not null
                 ? triangleColors
                 : Enumerable.Repeat<uint?>(null, indices.Count / 3).ToArray()

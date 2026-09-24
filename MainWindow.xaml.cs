@@ -36,6 +36,8 @@ public partial class MainWindow : Window
     private long _modelCacheBytes;
     private long _modelCacheBudgetBytes;
     private CancellationTokenSource _folderCacheCancellation = new();
+    private ModelMesh? _currentMesh;
+    private bool _updatingPlateBox;
 
     public MainWindow()
     {
@@ -109,6 +111,8 @@ public partial class MainWindow : Window
     {
         if (FileList.SelectedItem is not FileItem file)
         {
+            _currentMesh = null;
+            PlateBox.Visibility = Visibility.Collapsed;
             ModelVisual.Content = null;
             EmptyState.Visibility = Visibility.Visible;
             ModelInfoText.Text = "";
@@ -128,12 +132,26 @@ public partial class MainWindow : Window
             var mesh = await modelTask.WaitAsync(load.Token);
             KeepCached(file.FullPath, mesh, allowEviction: true);
             if (!ReferenceEquals(_loadCancellation, load)) return;
+            _currentMesh = mesh;
+            _updatingPlateBox = true;
+            PlateBox.Items.Clear();
+            if (mesh.Plates.Count > 1)
+            {
+                PlateBox.Items.Add("All plates");
+                foreach (var plate in mesh.Plates) PlateBox.Items.Add(plate.Name);
+                PlateBox.SelectedIndex = 0;
+                PlateBox.Visibility = Visibility.Visible;
+            }
+            else PlateBox.Visibility = Visibility.Collapsed;
+            _updatingPlateBox = false;
             ShowMesh(mesh);
             StatusText.Text = file.Name;
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
+            _currentMesh = null;
+            PlateBox.Visibility = Visibility.Collapsed;
             ModelVisual.Content = null;
             EmptyState.Visibility = Visibility.Visible;
             StatusText.Text = $"Could not preview {file.Name}";
@@ -145,12 +163,23 @@ public partial class MainWindow : Window
         }
     }
 
+    private void PlateBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_updatingPlateBox && _currentMesh is not null) ShowMesh(_currentMesh);
+    }
+
     private void ShowMesh(ModelMesh source)
     {
         var defaultColor = 0xFF24C7A4u;
-        var coloredTriangles = Enumerable.Range(0, source.TriangleCount)
+        var selectedPlate = PlateBox.Visibility == Visibility.Visible && PlateBox.SelectedIndex > 0
+            ? source.Plates[PlateBox.SelectedIndex - 1] : null;
+        var firstTriangle = selectedPlate?.FirstTriangle ?? 0;
+        var triangleCount = selectedPlate?.TriangleCount ?? source.TriangleCount;
+        var coloredTriangles = Enumerable.Range(firstTriangle, triangleCount)
             .GroupBy(index => index < source.TriangleColors.Count ? source.TriangleColors[index] ?? defaultColor : defaultColor);
         var models = new Model3DGroup();
+        var min = new Vector3(float.MaxValue);
+        var max = new Vector3(float.MinValue);
         foreach (var colorGroup in coloredTriangles)
         {
             var points = new Point3DCollection();
@@ -162,6 +191,8 @@ public partial class MainWindow : Window
                 {
                     var sourceIndex = source.Indices[triangleIndex * 3 + corner];
                     var point = source.Positions[sourceIndex];
+                    min = Vector3.Min(min, point);
+                    max = Vector3.Max(max, point);
                     var normal = source.Normals[sourceIndex];
                     points.Add(new Point3D(point.X, point.Y, point.Z));
                     normals.Add(new Vector3D(normal.X, normal.Y, normal.Z));
@@ -179,17 +210,15 @@ public partial class MainWindow : Window
         ModelVisual.Content = models;
         EmptyState.Visibility = Visibility.Collapsed;
 
-        var min = source.Min;
-        var max = source.Max;
         var size = max - min;
         _target = new Point3D((min.X + max.X) / 2, (min.Y + max.Y) / 2, (min.Z + max.Z) / 2);
         _distance = Math.Max(0.01, Math.Max(size.X, Math.Max(size.Y, size.Z)) * 2.1);
         _yaw = -40;
         _pitch = 25;
         UpdateCamera();
-        var savedColorCount = source.TriangleColors.Where(color => color.HasValue).Select(color => color!.Value).Distinct().Count();
+        var savedColorCount = source.TriangleColors.Skip(firstTriangle).Take(triangleCount).Where(color => color.HasValue).Select(color => color!.Value).Distinct().Count();
         var colorInfo = savedColorCount > 0 ? $"  ·  {savedColorCount} saved color{(savedColorCount == 1 ? "" : "s")}" : "";
-        ModelInfoText.Text = $"{source.TriangleCount:N0} triangles  ·  {size.X:0.##} × {size.Y:0.##} × {size.Z:0.##} {source.UnitLabel}{colorInfo}";
+        ModelInfoText.Text = $"{triangleCount:N0} triangles  ·  {size.X:0.##} × {size.Y:0.##} × {size.Z:0.##} {source.UnitLabel}{colorInfo}";
     }
 
     private void UpdateCamera()
@@ -258,12 +287,13 @@ public partial class MainWindow : Window
         var completed = 0;
         var nextIndex = -1;
         var budgetReached = false;
-        var workers = Enumerable.Range(0, Math.Min(2, files.Count)).Select(async _ =>
+        var preloadCount = Math.Min(5, files.Count);
+        var workers = Enumerable.Range(0, Math.Min(2, preloadCount)).Select(async _ =>
         {
             while (!token.IsCancellationRequested && !Volatile.Read(ref budgetReached))
             {
                 var index = Interlocked.Increment(ref nextIndex);
-                if (index >= files.Count) break;
+                if (index >= preloadCount) break;
                 var file = files[index];
                 try
                 {
@@ -280,7 +310,7 @@ public partial class MainWindow : Window
 
                 var count = Interlocked.Increment(ref completed);
                 if (!token.IsCancellationRequested)
-                    await Dispatcher.InvokeAsync(() => PreloadStatusText.Text = $"Caching previews {count}/{files.Count} · {FormatCacheBudget()} RAM budget");
+                    await Dispatcher.InvokeAsync(() => PreloadStatusText.Text = $"Caching {count}/{preloadCount}");
             }
         }).ToArray();
         try { await Task.WhenAll(workers); }

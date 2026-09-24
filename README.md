@@ -7,7 +7,8 @@ MeshCaddy is a lightweight 3D model browser for 64-bit Windows. It lets you open
 - Native binary and ASCII STL loading
 - Native 3MF loading, including build transforms and supported material/color resources
 - Assimp-based loading for more than 40 additional mesh and interchange formats
-- Folder-wide background preview caching with a RAM-aware limit
+- Background preview caching of up to five models with a RAM-aware limit
+- All-plate or individual-plate viewing for 3MF files with supported plate metadata
 - Model dimensions and triangle count
 - Orbit, zoom, and automatic camera fitting
 - Search and sorting by name, modified date, created date, size, or file type
@@ -49,7 +50,7 @@ To uninstall it, open **Settings > Apps > Installed apps**, find **MeshCaddy**, 
 3. Select a file in the left pane to display it.
 4. Drag over the preview with the left mouse button to orbit and use the mouse wheel to zoom.
 
-MeshCaddy starts loading previews in the background after opening a folder. The cache uses 25% of currently available physical memory, with a minimum budget of 256 MB and a maximum of 4 GB. If the folder is larger than that budget, uncached files are loaded when selected and older cached previews are removed as needed.
+MeshCaddy starts loading up to five model previews in the background after opening a folder. The cache uses 25% of currently available physical memory, with a minimum budget of 256 MB and a maximum of 4 GB. Other files are loaded when selected and older cached previews are removed as needed. When a 3MF file contains plate assignments, use the selector above the model to view all plates together or one plate at a time.
 
 ### Keyboard and mouse controls
 
@@ -144,7 +145,7 @@ Install these build tools first:
 From PowerShell in the repository root, choose a version number and run:
 
 ```powershell
-.\build-release.ps1 -Version "1.0.0"
+.\build-release.ps1 -Version "1.0.1"
 ```
 
 The script publishes a compressed, self-contained `win-x64` application into `artifacts\publish` and compiles its installer into `Releases`.
@@ -152,19 +153,19 @@ The script publishes a compressed, self-contained `win-x64` application into `ar
 Install the package through the setup wizard:
 
 ```powershell
-.\Releases\MeshCaddy-Setup-1.0.0-win-x64.exe
+.\Releases\MeshCaddy-Setup-1.0.1-win-x64.exe
 ```
 
 For a quiet current-user installation:
 
 ```powershell
 Start-Process `
-  -FilePath ".\Releases\MeshCaddy-Setup-1.0.0-win-x64.exe" `
+  -FilePath ".\Releases\MeshCaddy-Setup-1.0.1-win-x64.exe" `
   -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" `
   -Wait
 ```
 
-Replace `1.0.0` in these examples with the version passed to `build-release.ps1`.
+Replace `1.0.1` in these examples with the version passed to `build-release.ps1`.
 
 ## Project layout
 

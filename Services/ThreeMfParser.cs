@@ -57,6 +57,7 @@ internal static class ThreeMfParser
         var normals = new List<Vector3>();
         var indices = new List<int>();
         var triangleColors = new List<uint?>();
+        var plates = new List<ModelPlate>();
         var items = root.Element(ns + "build")?.Elements(ns + "item").ToArray() ?? [];
 
         if (items.Length == 0)
@@ -65,11 +66,30 @@ internal static class ThreeMfParser
         }
         else
         {
+            var plateAssignments = ReadPlateAssignments(archive);
+            var instanceNumbers = new Dictionary<int, int>();
+            var groupedItems = new Dictionary<int, List<XElement>>();
             foreach (var item in items)
             {
-                token.ThrowIfCancellationRequested();
-                if (!int.TryParse((string?)item.Attribute("objectid"), out var id) || !objects.ContainsKey(id)) continue;
-                AppendObject(id, ParseTransform((string?)item.Attribute("transform"), scale), objects, positions, normals, indices, triangleColors, token, 0);
+                if (!int.TryParse((string?)item.Attribute("objectid"), out var id)) continue;
+                instanceNumbers.TryGetValue(id, out var instanceNumber);
+                instanceNumbers[id] = instanceNumber + 1;
+                var plateId = plateAssignments.TryGetValue((id, instanceNumber), out var assigned) ? assigned : -1;
+                if (!groupedItems.TryGetValue(plateId, out var group)) groupedItems[plateId] = group = [];
+                group.Add(item);
+            }
+            foreach (var (plateId, group) in groupedItems.OrderBy(pair => pair.Key))
+            {
+                var firstTriangle = indices.Count / 3;
+                foreach (var item in group)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var id = I(item, "objectid");
+                    if (!objects.ContainsKey(id)) continue;
+                    AppendObject(id, ParseTransform((string?)item.Attribute("transform"), scale), objects, positions, normals, indices, triangleColors, token, 0);
+                }
+                var count = indices.Count / 3 - firstTriangle;
+                if (count > 0) plates.Add(new ModelPlate(plateId < 0 ? "Unassigned" : $"Plate {plateId}", firstTriangle, count));
             }
         }
 
@@ -77,9 +97,40 @@ internal static class ThreeMfParser
         // parts and reference them through package relationships. If the primary
         // build produced no geometry, collect those mesh parts for preview.
         if (positions.Count == 0)
+        {
             AppendPackageMeshes(modelEntries, positions, normals, indices, triangleColors, slicerColors, token);
+            plates.Clear();
+        }
 
-        return StlParser.Complete(positions, indices, normals, triangleColors);
+        return StlParser.Complete(positions, indices, normals, triangleColors, plates);
+    }
+
+    private static Dictionary<(int ObjectId, int InstanceNumber), int> ReadPlateAssignments(ZipArchive archive)
+    {
+        var result = new Dictionary<(int, int), int>();
+        var entry = archive.Entries.FirstOrDefault(e => e.FullName.Equals("Metadata/model_settings.config", StringComparison.OrdinalIgnoreCase));
+        if (entry is null) return result;
+        try
+        {
+            using var stream = entry.Open();
+            var document = XDocument.Load(stream, LoadOptions.None);
+            foreach (var plate in document.Descendants().Where(e => e.Name.LocalName == "plate"))
+            {
+                var numberText = plate.Elements().FirstOrDefault(e => e.Name.LocalName == "metadata" && (string?)e.Attribute("key") == "plater_id")?.Attribute("value")?.Value;
+                if (!int.TryParse(numberText, out var plateId)) continue;
+                foreach (var instance in plate.Descendants().Where(e => e.Name.LocalName is "model_instance" or "object_instance"))
+                {
+                    var metadata = instance.Elements().Where(e => e.Name.LocalName == "metadata" && e.Attribute("key") is not null)
+                        .GroupBy(e => (string)e.Attribute("key")!)
+                        .ToDictionary(group => group.Key, group => (string?)group.Last().Attribute("value") ?? "");
+                    if (metadata.TryGetValue("object_id", out var objectText) && int.TryParse(objectText, out var objectId) &&
+                        metadata.TryGetValue("instance_id", out var instanceText) && int.TryParse(instanceText, out var instanceId))
+                        result[(objectId, instanceId)] = plateId;
+                }
+            }
+        }
+        catch (Exception) { /* Plate metadata is optional; retain the combined preview. */ }
+        return result;
     }
 
     private static void AppendPackageMeshes(IEnumerable<ZipArchiveEntry> entries, List<Vector3> positions, List<Vector3> normals, List<int> indices, List<uint?> triangleColors, Dictionary<int, uint> slicerColors, CancellationToken token)

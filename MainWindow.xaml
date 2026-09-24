@@ -117,6 +117,8 @@
                         <TextBlock Text="Loading model…" Margin="0,12" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
+                <ComboBox x:Name="PlateBox" Width="150" Margin="14" HorizontalAlignment="Right" VerticalAlignment="Top"
+                          Visibility="Collapsed" SelectionChanged="PlateBox_SelectionChanged" ToolTip="Choose a build plate"/>
                 <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="{DynamicResource PanelBrush}" CornerRadius="6" Margin="14" Padding="10,7">
                     <TextBlock x:Name="ModelInfoText" Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </Border>
@@ -125,9 +127,14 @@
 
         <Border Grid.Row="2" Background="{DynamicResource PanelBrush}" Padding="9,6" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid>
-                <TextBlock x:Name="StatusText" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                <TextBlock x:Name="PreloadStatusText" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                <TextBlock x:Name="PreloadStatusText" Grid.Column="1" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="8,0"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button Content="New folder" Click="NewFolder_Click"/>
                     <Button Content="Rename" Click="Rename_Click"/>
                     <Button Content="Copy to…" Click="Copy_Click"/>
