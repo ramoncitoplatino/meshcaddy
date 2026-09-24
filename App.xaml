@@ -1,0 +1,50 @@
+<Application x:Class="MeshCaddy.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#0E172B"/>
+        <SolidColorBrush x:Key="PanelBrush" Color="#14213D"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#192846"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C2B4D"/>
+        <SolidColorBrush x:Key="ViewportBrush" Color="#0F192E"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#526171"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F4F7FA"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C6D0DA"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#8795A3"/>
+        <SolidColorBrush x:Key="ButtonBrush" Color="#243657"/>
+        <SolidColorBrush x:Key="OverlayBrush" Color="#CC0E172B"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#24C7A4"/>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource ButtonBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="Padding" Value="7,5"/>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource WindowBackgroundBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Application.Resources>
+</Application>
