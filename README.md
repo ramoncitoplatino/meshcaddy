@@ -74,6 +74,31 @@ Install:
 - [Git for Windows](https://git-scm.com/download/win), if obtaining the source from Git
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
+### Clone from GitHub
+
+Using Git over HTTPS:
+
+```powershell
+git clone https://github.com/ramoncitoplatino/meshcaddy.git
+cd meshcaddy
+```
+
+Using the [GitHub CLI](https://cli.github.com/):
+
+```powershell
+gh repo clone ramoncitoplatino/meshcaddy
+cd meshcaddy
+```
+
+To download the source without Git:
+
+1. Open the [MeshCaddy GitHub repository](https://github.com/ramoncitoplatino/meshcaddy).
+2. Select **Code** and then **Download ZIP**.
+3. Extract the downloaded ZIP file.
+4. Open PowerShell in the extracted `meshcaddy` folder.
+
+After cloning or extracting the source, continue with the build commands below.
+
 Open PowerShell in the repository root and restore and build the project:
 
 ```powershell
